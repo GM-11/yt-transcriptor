@@ -1,0 +1,8 @@
+streamlit
+langchain-community
+youtube-transcript-api
+googletrans==3.1.0a0
+gTTS
+elevenlabs
+pyttsx3
+python-dotenv
