@@ -1,5 +1,4 @@
 import streamlit as st
-from langchain_community.document_loaders import YoutubeLoader
 from googletrans import Translator
 from youtube_transcript_api import YouTubeTranscriptApi
 from gtts import gTTS
