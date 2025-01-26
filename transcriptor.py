@@ -2,7 +2,8 @@ import streamlit as st
 import google.generativeai as genai
 from youtube_transcript_api import YouTubeTranscriptApi
 from gtts import gTTS
-from elevenlabs import generate, set_api_key, voices
+from elevenlabs import voices, stream
+from elevenlabs.client import ElevenLabs
 import pyttsx3
 import io
 import os
@@ -134,18 +135,19 @@ def text_to_speech_elevenlabs(text, voice_id, speed=1.0, volume=1.0):
         if not ELEVEN_LABS_API_KEY:
             raise ValueError("ElevenLabs API key not found")
 
-        set_api_key(ELEVEN_LABS_API_KEY)
-        audio = generate(
+        client = ElevenLabs(api_key=ELEVEN_LABS_API_KEY)
+
+        audio_stream = client.text_to_speech.convert_as_stream(
             text=text,
-            voice=voice_id,
-            model="eleven_multilingual_v2",
+            voice_id=voice_id,
+            model_id="eleven_multilingual_v2"
         )
 
-        if isinstance(audio, bytes):
-            audio_buffer = io.BytesIO(audio)
-        else:
-            audio_bytes = b''.join(audio)
-            audio_buffer = io.BytesIO(audio_bytes)
+        audio_buffer = io.BytesIO()
+        for chunk in audio_stream:
+            if isinstance(chunk, bytes):
+                audio_buffer.write(chunk)
+        audio_buffer.seek(0)
         return audio_buffer
     except Exception as e:
         st.error(f"Error in ElevenLabs conversion: {str(e)}")
@@ -225,8 +227,8 @@ def main():
         with col1:
             if ELEVEN_LABS_API_KEY:
                 try:
-                    set_api_key(ELEVEN_LABS_API_KEY)
-                    available_voices = voices()
+                    client = ElevenLabs(api_key=ELEVEN_LABS_API_KEY)
+                    available_voices = client.voices.get_all().voices
                     voice_options = {voice.name: voice.voice_id for voice in available_voices}
 
                     selected_voice = st.selectbox(
