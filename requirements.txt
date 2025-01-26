@@ -3,5 +3,6 @@ google-generativeai
 youtube-transcript-api
 gtts
 elevenlabs
+elevenlabs.client
 pyttsx3
 python-dotenv
