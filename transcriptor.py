@@ -1,5 +1,5 @@
 import streamlit as st
-from googletrans import Translator
+import google.generativeai as genai
 from youtube_transcript_api import YouTubeTranscriptApi
 from gtts import gTTS
 from elevenlabs import generate, set_api_key, voices
@@ -12,6 +12,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 ELEVEN_LABS_API_KEY = os.getenv('ELEVEN_LABS_API_KEY')
+GEMENI_API_KEY = os.getenv("GEMENI_API_KEY")
+genai.configure(api_key=GEMENI_API_KEY)
+
 
 def extract_video_id(url):
     """Extract video ID from YouTube URL"""
@@ -63,10 +66,9 @@ def get_transcript(video_id, target_lang='en'):
 
 
             if target_lang != available_transcript.language_code:
-                translator = Translator()
-                print(str(full_transcript))
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 try:
-                    translated = translator.translate(str(full_transcript), dest=target_lang)
+                    translated = model.generate_content(f"Translate {full_transcript} to {target_lang}. Do not give any explanation or context, only give the translated text")
                     if translated and translated.text:
                         return f"Original transcript in {available_transcript.language_code}\nTranslated to {target_lang}:\n\n{translated.text}"
                     else:
