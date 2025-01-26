@@ -1,6 +1,6 @@
 streamlit
 google-generativeai
-youtube-transcript-api=0.6.3
+youtube-transcript-api==0.6.3
 gtts
 elevenlabs
 pyttsx3
