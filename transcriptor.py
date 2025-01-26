@@ -3,12 +3,11 @@ from langchain_community.document_loaders import YoutubeLoader
 from googletrans import Translator
 from youtube_transcript_api import YouTubeTranscriptApi
 from gtts import gTTS
-from elevenlabs import generate, set_api_key, voices, Models
+from elevenlabs import generate, set_api_key, voices
 import pyttsx3
 import io
 import os
 import tempfile
-import platform
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -29,6 +28,7 @@ def get_available_transcripts(video_id):
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         return transcript_list
     except Exception as e:
+        st.error(f"Error getting available transcripts: {str(e)}")
         return None
 
 def get_transcript(video_id, target_lang='en'):
@@ -36,6 +36,8 @@ def get_transcript(video_id, target_lang='en'):
     try:
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         available_transcript = None
+        # print("Available transcripts:")
+        # print(transcript_list.find_transcript(["en-IN"]))
 
         try:
             available_transcript = transcript_list.find_manually_created_transcript([target_lang])
@@ -46,25 +48,39 @@ def get_transcript(video_id, target_lang='en'):
                     generated_transcripts = [t for t in transcript_list._generated_transcripts.values()]
                 if generated_transcripts:
                     available_transcript = generated_transcripts[0]
-            except:
+            except Exception as e:
+                st.error(f"Error finding generated transcripts: {str(e)}")
                 return "No transcripts available"
 
         if available_transcript:
             transcript_data = available_transcript.fetch()
-            full_transcript = ' '.join([entry['text'] for entry in transcript_data])
+            full_transcript = ""
+            for entry in transcript_data:
+                if len(entry['text']) == 0:
+                    print("yes its there")
+                else:
+                    full_transcript += entry['text'].strip()
+            # full_transcript = ' '.join([entry['text'] for entry in transcript_data])
+
 
             if target_lang != available_transcript.language_code:
                 translator = Translator()
+                print(str(full_transcript))
                 try:
-                    translated = translator.translate(full_transcript, dest=target_lang)
-                    return f"Original transcript in {available_transcript.language_code}\nTranslated to {target_lang}:\n\n{str(translated)}"
+                    translated = translator.translate(str(full_transcript), dest=target_lang)
+                    if translated and translated.text:
+                        return f"Original transcript in {available_transcript.language_code}\nTranslated to {target_lang}:\n\n{translated.text}"
+                    else:
+                        return "Error in translation: Translation result is empty"
                 except Exception as e:
+                    st.error(f"Error in translation: {str(e)}")
                     return f"Error in translation: {str(e)}"
             return full_transcript
 
         return "No suitable transcript found"
 
     except Exception as e:
+        st.error(f"Error getting transcript: {str(e)}")
         return f"Error getting transcript: {str(e)}"
 
 def init_pyttsx3():
@@ -134,8 +150,6 @@ def text_to_speech_elevenlabs(text, voice_id, speed=1.0, volume=1.0):
         st.error(f"Error in ElevenLabs conversion: {str(e)}")
         return None
 
-
-
 def main():
     st.set_page_config(page_title="YouTube Video Tools", layout="wide")
     st.title("YouTube Video Tools")
@@ -176,7 +190,7 @@ def main():
                         transcript = get_transcript(video_id, selected_lang_code)
 
                         st.subheader("Transcript:")
-                        st.text_area("", value=transcript, height=300)
+                        st.text_area("Transcript", value=transcript, height=300, label_visibility="collapsed")
 
                         st.download_button(
                             label="Download Transcript",
@@ -222,18 +236,18 @@ def main():
 
                     # Add speed and volume controls
                     speed = st.slider("Speed:",
-                                    min_value=0.5,
-                                    max_value=2.0,
-                                    value=1.0,
-                                    step=0.1,
-                                    help="Adjust the speaking rate (0.5 = slower, 2.0 = faster)")
+                        min_value=0.5,
+                        max_value=2.0,
+                        value=1.0,
+                        step=0.1,
+                        help="Adjust the speaking rate (0.5 = slower, 2.0 = faster)")
 
                     volume = st.slider("Volume:",
-                                     min_value=-9.0,
-                                     max_value=9.0,
-                                     value=0.0,
-                                     step=0.5,
-                                     help="Adjust the volume (negative = softer, positive = louder)")
+                        min_value=-9.0,
+                        max_value=9.0,
+                        value=0.0,
+                        step=0.5,
+                        help="Adjust the volume (negative = softer, positive = louder)")
 
                 except Exception as e:
                     st.error("Error accessing ElevenLabs API. Please check your API key.")
@@ -267,7 +281,6 @@ def main():
                         st.error("ElevenLabs API key not found or voice not selected")
             else:
                 st.error("Please enter some text to convert")
-
 
 if __name__ == "__main__":
     main()
