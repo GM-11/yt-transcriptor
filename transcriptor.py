@@ -253,7 +253,7 @@ def main():
                         help="Adjust the volume (negative = softer, positive = louder)")
 
                 except Exception as e:
-                    st.error("Error accessing ElevenLabs API. Please check your API key.")
+                    st.error(f"Error accessing ElevenLabs API: {e}")
             else:
                 st.error("ElevenLabs API key not found in .env file")
 
